@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/build",
+  "command": "/usr/bin/c++  -I/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/include  -o CMakeFiles/learnopenglC++.dir/src/main.cpp.o -c /home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/src/main.cpp",
+  "file": "/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/src/main.cpp",
+  "output": "CMakeFiles/learnopenglC++.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/build",
+  "command": "/usr/bin/cc  -I/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/include  -o CMakeFiles/learnopenglC++.dir/src/glad.c.o -c /home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/src/glad.c",
+  "file": "/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/src/glad.c",
+  "output": "CMakeFiles/learnopenglC++.dir/src/glad.c.o"
+}
+]
