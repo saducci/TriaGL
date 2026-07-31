@@ -1,1 +1,0 @@
-/usr/bin/c++ -rdynamic -Wl,--dependency-file=CMakeFiles/learnopenglC++.dir/link.d CMakeFiles/learnopenglC++.dir/src/main.cpp.o CMakeFiles/learnopenglC++.dir/src/glad.c.o -o learnopenglC++  /usr/lib/x86_64-linux-gnu/libglfw.so.3.4 /usr/lib/x86_64-linux-gnu/libGL.so

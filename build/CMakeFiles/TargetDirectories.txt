@@ -1,3 +1,0 @@
-/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/build/CMakeFiles/learnopenglC++.dir
-/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/build/CMakeFiles/edit_cache.dir
-/home/saducci/Documents/mystuProj/raylib-cpp/learnopenglC++/build/CMakeFiles/rebuild_cache.dir
