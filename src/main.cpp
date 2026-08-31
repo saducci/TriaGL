@@ -1,6 +1,4 @@
 #include "config.h"
-#include <GLFW/glfw3.h>
-#include <fstream>
 using std::string;
 typedef unsigned NON_NEGATIVE;
 struct Vector3 {
@@ -11,17 +9,20 @@ struct Vector2 {
 };
 constexpr unsigned int SCREEN_WIDTH = 640;
 constexpr unsigned int SCREEN_HEIGHT = 480;
+
 // functions
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
+
 //
+
 class Mesh {
 private:
-  unsigned int VAO = 0;
-  unsigned int VBO = 0;
+  unsigned int m_VAO = 0;
+  unsigned int m_VBO = 0;
 
-  unsigned int EBO;
-  unsigned int indexcount = 0;
+  unsigned int m_EBO = 0;
+  unsigned int m_indexcount = 0;
 
 public:
   // you can change the primitve here  so it can draw other things
@@ -29,37 +30,40 @@ public:
   void create(const float *vertices, size_t vertexsize,
               const unsigned int *indices, size_t indexsize,
               unsigned int count) {
-    indexcount = count;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    m_indexcount = count;
+    glGenVertexArrays(1, &m_VAO);
+    glBindVertexArray(m_VAO);
 
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glGenBuffers(1, &m_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, vertexsize, vertices, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glGenBuffers(1, &m_EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexsize, indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
   }
   void draw() {
-    std::cout << "DrawingVAO " << VAO << "  ";
-    glBindVertexArray(VAO);
-    glDrawElements(primitive, indexcount, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(m_VAO);
+    glDrawElements(primitive, m_indexcount, GL_UNSIGNED_INT, 0);
   }
   void destroy() {
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_EBO);
   }
   ~Mesh() { destroy(); }
 };
 class Shader {
 private:
-  unsigned int programID = 0;
+  unsigned int m_programID = 0;
 
 public:
   string readFile(const char *filepath) {
@@ -86,6 +90,7 @@ public:
       std::cout << "ERROR::SHADER:VERTEX::COMPIPLATION_FAILED\n"
                 << infolog << "\n";
     }
+
     return vertexShader;
   }
   unsigned int setupFragmentShader(const char *source) {
@@ -94,7 +99,7 @@ public:
     glShaderSource(fragmentShader, 1, &source, NULL);
     glCompileShader(fragmentShader);
     int success;
-    char infolog[512];
+    char infolog[1024];
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
       glGetShaderInfoLog(fragmentShader, sizeof(infolog), NULL, infolog);
@@ -108,22 +113,33 @@ public:
     string fragmentCode = readFile(fragmentpath);
     unsigned int vertexShader = setupVertexShader(vertexCode.c_str());
     unsigned int fragmentShader = setupFragmentShader(fragmentCode.c_str());
-    programID = glCreateProgram();
-    glAttachShader(programID, vertexShader);
-    glAttachShader(programID, fragmentShader);
-    glLinkProgram(programID);
+    m_programID = glCreateProgram();
+    glAttachShader(m_programID, vertexShader);
+    glAttachShader(m_programID, fragmentShader);
+    glLinkProgram(m_programID);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     int success;
     char infolog[512];
-    glGetProgramiv(programID, GL_LINK_STATUS, &success);
+    glGetProgramiv(m_programID, GL_LINK_STATUS, &success);
     if (!success) {
-      glGetProgramInfoLog(programID, 512, NULL, infolog);
+      glGetProgramInfoLog(m_programID, 512, NULL, infolog);
       std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infolog << '\n';
     }
   }
-  void use() { glUseProgram(programID); }
-  void destroy() { glDeleteProgram(programID); }
+  unsigned int getID() { return m_programID; }
+  void setBool(const string &name, bool value) const {
+    glUniform1i(glGetUniformLocation(m_programID, name.c_str()), (int)value);
+  };
+  void setInt(const string &name, int value) const {
+    glUniform1i(glGetUniformLocation(m_programID, name.c_str()), value);
+  };
+  void setFloat(const string &name, float value) const {
+    glUniform1f(glGetUniformLocation(m_programID, name.c_str()), value);
+  };
+
+  void use() { glUseProgram(m_programID); }
+  void destroy() { glDeleteProgram(m_programID); }
 };
 
 int main() {
@@ -164,22 +180,22 @@ int main() {
   //                               0.00f, -0.05f, 0.05f, 0.00f};
   // float triangle_vertice_2[] = {0.02f, -0.05f, 0.00f, 0.03f, -0.03f,
   //                               0.00f, -0.05f, -0.02f, 0.00f};
-float vertices[] = {
-    // Triangle 1 (left)
-    -0.9f,  0.8f, 0.0f,
-    -0.9f, -0.8f, 0.0f,
-    -0.1f, -0.8f, 0.0f,
+  float vertices[] = {
+      // positions         // colors
+      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
+      -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+      0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
+  };
+  float texture_cords[] = {0.0f, 0.0f,
+                           1.0f, 0.0f,
+                           0.5,  1.0f};
 
-    // Triangle 2 (right)
-     0.9f,  0.8f, 0.0f,
-     0.9f, -0.8f, 0.0f,
-     0.1f, -0.8f, 0.0f
-};
-
-
-  unsigned int indices[] = {0, 1, 2,3,4,5};
-
-  // creating a program object
+  unsigned int indices[] = {0, 1, 2};
+  // for (int i = 0; i < 3; i++) {
+  //   vertices[i * 6 + 0] *= -1; // x
+  //   vertices[i * 6 + 1] *= -1; // y
+  //                              // vertices[i * 6 + 2] *= -1; // z
+  // } // creating a program object
   Shader shader;
   shader.createShaderProgram("./src/vertexshader.vert", "./src/fragment.glsl");
   Mesh triangle1;
@@ -187,22 +203,24 @@ float vertices[] = {
   // triangle1.create(triangle_vertice_1, sizeof(triangle_vertice_1), indices,
   //                  sizeof(indices), 3);
   Mesh triangle;
-  triangle.create(vertices, sizeof(vertices), indices,
-                   sizeof(indices), 6);
+  triangle.create(vertices, sizeof(vertices), indices, sizeof(indices), 3);
 
   // std::cout << std::filesystem::current_path() << '\n';
 
   while (!glfwWindowShouldClose(window)) {
 
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    // glClearColor(0.7f, 0.3f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     // input
-
     processInput(window);
-
     // rendering cmd here
+
     shader.use();
-    // triangle1.draw();
+
+    float offset = 0.0f;
+    shader.setFloat("xoffset", offset);
+    float localoffset = 1;
+    shader.setFloat("localoffset", localoffset);
     triangle.draw();
     // check&call events & swap the buffers
 
