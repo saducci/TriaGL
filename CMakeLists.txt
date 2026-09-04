@@ -5,7 +5,7 @@ ADD_EXECUTABLE(TriaGL
   src/main.cpp
   src/glad.c
   src/config.h
-
+  src/stb_image.h
 )
 TARGET_INCLUDE_DIRECTORIES(TriaGL PRIVATE include)
 find_package(OpenGL REQUIRED)
