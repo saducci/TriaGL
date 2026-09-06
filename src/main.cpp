@@ -1,12 +1,10 @@
-#include "config.h"
+#include"config.h"
 #include <GLFW/glfw3.h>
 #include <cstddef>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define color1 0.2f, 0.3f, 0.3f, 1.0f
 using std::string;
-typedef unsigned NON_NEGATIVE;
 struct Vector3 {
   float x, y, z;
 };
@@ -51,7 +49,7 @@ public:
     m_indexcount = count;
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
-
+    
     glGenBuffers(1, &m_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -281,7 +279,6 @@ int main() {
     float localyoffset = 0;
     // shader things
 
-    shader.setFloat("u_localxoffset", localxoffset);
     shader.setFloat("mixValue", mixValue);
     shader.setFloat("u_localyoffset", localyoffset);
     shader.setFloat("u_localxoffset", localxoffset);
