@@ -1,10 +1,17 @@
-#include"config.h"
+#include "config.h"
 #include <GLFW/glfw3.h>
 #include <cstddef>
-
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
+#include <glm/trigonometric.hpp>
 #define STB_IMAGE_IMPLEMENTATION
+#include "shader.hpp"
 #include "stb_image.h"
-using std::string;
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 struct Vector3 {
   float x, y, z;
 };
@@ -15,11 +22,9 @@ constexpr unsigned int SCREEN_WIDTH = 640;
 constexpr unsigned int SCREEN_HEIGHT = 480;
 
 // functions
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow *window, float &mixValue);
-
+void FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow *window, int width, int height);
+void PROCESS_INPUT(GLFWwindow *window, float &mixValue);
 //
-
 class Mesh_class {
 private:
   unsigned int m_VAO = 0;
@@ -38,7 +43,7 @@ public:
       -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
       -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f  // top left
   };
-  static constexpr unsigned int  indices[] = {
+  static constexpr unsigned int indices[] = {
 
       3, 1, 0, 3, 2, 1};
   GLenum primitive = GL_TRIANGLES;
@@ -49,7 +54,7 @@ public:
     m_indexcount = count;
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
-    
+
     glGenBuffers(1, &m_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -71,10 +76,9 @@ public:
                           (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
   }
-  void draw() {
-    glBindVertexArray(m_VAO);
-    glDrawElements(primitive, m_indexcount, GL_UNSIGNED_INT, 0);
-  }
+  // void draw() {
+  //   glBindVertexArray(m_VAO);
+  // }
   void destroy() {
     glDeleteVertexArrays(1, &m_VAO);
     glDeleteBuffers(1, &m_VBO);
@@ -91,7 +95,7 @@ private:
   int texture_width = 0, texture_height = 0, texture_nrChannels = 0;
 
 public:
-  bool load_texture_image(const char *path_to_image) {
+  bool LOAD_TEXTURE_IMAGE(const char *path_to_image) {
     stbi_set_flip_vertically_on_load(true);
     stbi_data = stbi_load(path_to_image, &texture_width, &texture_height,
                           &texture_nrChannels, 0);
@@ -101,7 +105,7 @@ public:
     }
     return true;
   }
-  void create_texture(GLint param) {
+  void CREATE_TEXTURE(GLint param) {
     float borderColor[] = {0.2f, 0.3f, 0.3f, 1.0f};
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -122,7 +126,7 @@ public:
       std::cout << "Failed to load texture";
     }
   }
-  void bind(unsigned int textureUnit) const {
+  void BIND(unsigned int textureUnit) const {
     glActiveTexture(GL_TEXTURE0 + textureUnit);
     glBindTexture(GL_TEXTURE_2D, texture);
   };
@@ -130,91 +134,9 @@ public:
   ~texture_class() { delete_texture(); }
 };
 ;
-class Shader_class {
-private:
-  unsigned int m_programID = 0;
-
-public:
-  string readFile(const char *filepath) {
-    std::ifstream Shaderfile(filepath);
-
-    if (!Shaderfile.is_open()) {
-      std::cout << "Failed to open" + string(filepath) + "\n";
-      return "";
-    }
-    std::stringstream buffer;
-    buffer << Shaderfile.rdbuf();
-    return buffer.str();
-  }
-  unsigned int setupVertexShader(const char *source) {
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &source, NULL);
-    glCompileShader(vertexShader);
-    int success;
-    char infolog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-      glGetShaderInfoLog(vertexShader, sizeof(infolog), NULL, infolog);
-      std::cout << "ERROR::SHADER:VERTEX::COMPIPLATION_FAILED\n"
-                << infolog << "\n";
-    }
-
-    return vertexShader;
-  }
-  unsigned int setupFragmentShader(const char *source) {
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &source, NULL);
-    glCompileShader(fragmentShader);
-    int success;
-    char infolog[1024];
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-      glGetShaderInfoLog(fragmentShader, sizeof(infolog), NULL, infolog);
-      std::cout << "ERROR::SHADER:FRAGMENT::COMPILATION_FAILED\n"
-                << infolog << "\n";
-    }
-    return fragmentShader;
-  }
-  void createShaderProgram(const char *vertexpath, const char *fragmentpath) {
-    string vertexCode = readFile(vertexpath);
-    string fragmentCode = readFile(fragmentpath);
-    unsigned int vertexShader = setupVertexShader(vertexCode.c_str());
-    unsigned int fragmentShader = setupFragmentShader(fragmentCode.c_str());
-    m_programID = glCreateProgram();
-    glAttachShader(m_programID, vertexShader);
-    glAttachShader(m_programID, fragmentShader);
-    glLinkProgram(m_programID);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    int success;
-    char infolog[512];
-    glGetProgramiv(m_programID, GL_LINK_STATUS, &success);
-    if (!success) {
-      glGetProgramInfoLog(m_programID, 512, NULL, infolog);
-      std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infolog << '\n';
-    }
-  }
-  unsigned int getID() { return m_programID; }
-  void setBool(const string &name, bool value) const {
-    glUniform1i(glGetUniformLocation(m_programID, name.c_str()), (int)value);
-  };
-  void setInt(const string &name, int value) const {
-    glUniform1i(glGetUniformLocation(m_programID, name.c_str()), value);
-  };
-  void setFloat(const string &name, float value) const {
-    glUniform1f(glGetUniformLocation(m_programID, name.c_str()), value);
-  };
-
-  void use() { glUseProgram(m_programID); }
-  void destroy() { glDeleteProgram(m_programID); }
-};
-
 int main() {
   // init the glfw
   glfwInit();
-
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -238,32 +160,33 @@ int main() {
     return -1;
   }
   // setting the ViewPort
-  glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
   // see if the window was resized call the framebuffer_size_callback function
   // and reset the glviewport
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  // glfwSetFramebufferSizeCallback(window, FRAMEBUFFER_SIZE_CALLBACK);
   // create the render loop
   // vertices for drawing a triangle
 
-  Shader_class shader;
-  shader.createShaderProgram("./src/vertexshader.vert", "./src/fragment.glsl");
-  shader.use();
+  shader::Shader_class default_shader_1;
+  default_shader_1.CREATE_SHADER_PROGRAM("./src/vertexshader.vert",
+                                         "./src/fragment.glsl");
+  default_shader_1.use();
 
-  shader.setInt("texture0", 0);
-  shader.setInt("texture1", 1);
+  default_shader_1.setInt("texture0", 0);
+  default_shader_1.setInt("texture1", 1);
 
   Mesh_class triangle;
   triangle.create(6);
   texture_class wood_texture;
-  wood_texture.load_texture_image("./src/wall.jpg");
-  wood_texture.create_texture(GL_REPEAT);
+  wood_texture.LOAD_TEXTURE_IMAGE("./src/wall.jpg");
+  wood_texture.CREATE_TEXTURE(GL_REPEAT);
 
   texture_class awesomeface_texture;
-  awesomeface_texture.load_texture_image("./src/awesomeface.png");
-  awesomeface_texture.create_texture(GL_REPEAT);
+  awesomeface_texture.LOAD_TEXTURE_IMAGE("./src/awesomeface.png");
+  awesomeface_texture.CREATE_TEXTURE(GL_REPEAT);
 
   // uniform
+  // GLM
 
   float mixValue = 0.2f;
 
@@ -272,22 +195,32 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     // input
-    processInput(window, mixValue);
+    //
+    glfwSetFramebufferSizeCallback(window, FRAMEBUFFER_SIZE_CALLBACK);
+    PROCESS_INPUT(window, mixValue);
     // rendering cmd here
 
     float localxoffset = -0.0;
     float localyoffset = 0;
     // shader things
 
-    shader.setFloat("mixValue", mixValue);
-    shader.setFloat("u_localyoffset", localyoffset);
-    shader.setFloat("u_localxoffset", localxoffset);
+    default_shader_1.setFloat("mixValue", mixValue);
     // drawing things
 
-    wood_texture.bind(0);
-    awesomeface_texture.bind(1);
-    triangle.draw();
+    wood_texture.BIND(0);
+    awesomeface_texture.BIND(1);
 
+    // glm::vec3 pos = glm::vec3(0.0, 0.0, 0.0);
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans =
+        glm::rotate(trans, (float)glfwGetTime() * 2, glm::vec3(0.0, 0.0, 1.0f));
+    // trans = glm::scale(trans, glm::vec3(1.0, 1.0, 1.0));
+    // trans = glm::translate(trans, pos);
+    
+
+    default_shader_1.setMat4("transform", trans);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     // glBindVertexArray(triangle.getVAO());
     // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -295,16 +228,16 @@ int main() {
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
-  shader.destroy();
+  default_shader_1.destroy();
   glfwDestroyWindow(window);
   glfwTerminate();
 
   return 0;
 }
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
 }
-void processInput(GLFWwindow *window, float &mixValue) {
+void PROCESS_INPUT(GLFWwindow *window, float &mixValue) {
   const float randomnumber = 0.05f;
 
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
