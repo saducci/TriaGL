@@ -216,7 +216,6 @@ int main() {
         glm::rotate(trans, (float)glfwGetTime() * 2, glm::vec3(0.0, 0.0, 1.0f));
     // trans = glm::scale(trans, glm::vec3(1.0, 1.0, 1.0));
     // trans = glm::translate(trans, pos);
-    
 
     default_shader_1.setMat4("transform", trans);
 
